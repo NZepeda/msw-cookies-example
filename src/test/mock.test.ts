@@ -54,9 +54,7 @@ const server: SetupServer = setupServer(
       return HttpResponse.json(
         { data: { token: "mytokenhelloworld" } },
         {
-          headers: new Headers({
-            "Set-Cookie": cookieString,
-          }),
+          status: 200,
         }
       );
     }
