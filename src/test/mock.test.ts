@@ -78,28 +78,23 @@ const server: SetupServer = setupServer(
 
 describe("withJwt", () => {
   beforeAll(() => {
+    setSessionCookie(sessionCookieName, authorizedSessionCookieValue, url);
     server.listen();
   });
 
   afterAll(() => {
+    cookieStore.clear();
     server.close();
   });
 
-  afterEach(() => {
-    cookieStore.clear();
-  });
-
   it("receives a status code of 200 when hitting the token endpoint when the user is authenticated with the session cookie", async () => {
-    setSessionCookie(sessionCookieName, authorizedSessionCookieValue, url);
-
     const response = await fetch(tokenEndpoint, { credentials: "include" });
 
     expect(response.status).toBe(200);
   });
 
+  // Checks for the same cookie as the test above but this test fails simply because of the order of the handler in the server setup above.
   it("receives a status code of 200 when hitting the ping endpoint when the user is authenticated with the session cookie", async () => {
-    setSessionCookie(sessionCookieName, authorizedSessionCookieValue, url);
-
     const response = await fetch(pingEndpoint, { credentials: "include" });
 
     expect(response.status).toBe(200);
