@@ -1,40 +1,43 @@
-import { store as cookieStore } from "@mswjs/cookies";
 import { serialize as serializeCookie } from "cookie";
 import { setupServer, SetupServer } from "msw/node";
 import { http, HttpResponse } from "msw";
 
-import { afterEach } from "vitest";
-
 const sessionCookieName = "MyCookie";
 const authorizedSessionCookieValue = "ABCD1234";
 const url = "https://my-app.mysite.com:9090";
-
-const cookieString = serializeCookie(
-  sessionCookieName,
-  authorizedSessionCookieValue
-);
+const sessionCookieAttributes = {
+  maxAge: 43200,
+  path: "/",
+};
 
 const tokenEndpoint = `${url}/rest/token`;
 const restEndpoint = `${url}/rest`;
 const pingEndpoint = `${url}/ping`;
 
 /**
- * Sets the session cookie in the cookie store so that it is picked up by msw.
+ * Sets a cookie with the given `cookieName` to `value` in an MSW + jsdom test setup.
+ * Returns a cleanup function to clear the cookie.
  */
-function setSessionCookie(
+export function setSessionCookie(
   cookieName: string,
-  cookieValue: string,
-  url: string
-) {
-  const cookieString = serializeCookie(cookieName, cookieValue);
-  cookieStore.add(
-    { url, credentials: "same-origin" },
-    {
-      headers: new Headers({
-        "Set-Cookie": cookieString,
-      }),
-    }
+  value: string
+): () => void {
+  const cookieString = serializeCookie(
+    cookieName,
+    value,
+    sessionCookieAttributes
   );
+
+  document.cookie = cookieString;
+
+  return () => {
+    // Cookies are cleared by setting the `expires` property to a past date.
+    // See: https://www.w3schools.com/js/js_cookies.asp
+    document.cookie = serializeCookie(cookieName, "", {
+      ...sessionCookieAttributes,
+      expires: new Date(0),
+    });
+  };
 }
 
 /**
@@ -76,12 +79,11 @@ const server: SetupServer = setupServer(
 
 describe("withJwt", () => {
   beforeAll(() => {
-    setSessionCookie(sessionCookieName, authorizedSessionCookieValue, url);
+    setSessionCookie(sessionCookieName, authorizedSessionCookieValue);
     server.listen();
   });
 
   afterAll(() => {
-    cookieStore.clear();
     server.close();
   });
 
